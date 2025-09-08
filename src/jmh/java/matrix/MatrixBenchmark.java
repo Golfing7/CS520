@@ -43,7 +43,7 @@ public class MatrixBenchmark {
         SquareMatrix matrix1 = SquareMatrix.random(matrixSize);
         SquareMatrix matrix2 = SquareMatrix.random(matrixSize);
 
-        blackhole.consume(matrixMultiplyNaive(matrix1, matrix2));
+        blackhole.consume(SquareMatrix.matrixMultiplyNaive(matrix1, matrix2));
     }
 
     @Benchmark
@@ -54,71 +54,6 @@ public class MatrixBenchmark {
         SquareMatrix matrix1 = SquareMatrix.random(matrixSize);
         SquareMatrix matrix2 = SquareMatrix.random(matrixSize);
 
-        blackhole.consume(matrixMultiplyStrassen(matrix1, matrix2));
-    }
-
-    private static SquareMatrix matrixMultiplyNaive(SquareMatrix matrix1, SquareMatrix matrix2) {
-        if (matrix1.getSize() == 1)
-            return SquareMatrix.fromElements(matrix1.getElement(1, 1) * matrix2.getElement(1, 1));
-
-        int halfSize = matrix1.getSize() / 2;
-        SquareMatrix a11 = matrix1.subMatrix(1, 1, halfSize);
-        SquareMatrix a12 = matrix1.subMatrix(1, halfSize + 1, halfSize);
-        SquareMatrix a21 = matrix1.subMatrix(halfSize + 1, 1, halfSize);
-        SquareMatrix a22 = matrix1.subMatrix(halfSize + 1, halfSize + 1, halfSize);
-
-        SquareMatrix b11 = matrix2.subMatrix(1, 1, halfSize);
-        SquareMatrix b12 = matrix2.subMatrix(1, halfSize + 1, halfSize);
-        SquareMatrix b21 = matrix2.subMatrix(halfSize + 1, 1, halfSize);
-        SquareMatrix b22 = matrix2.subMatrix(halfSize + 1, halfSize + 1, halfSize);
-
-        SquareMatrix c11 = matrixMultiplyNaive(a11, b11).plus(matrixMultiplyNaive(a12, b21));
-        SquareMatrix c12 = matrixMultiplyNaive(a11, b12).plus(matrixMultiplyNaive(a12, b22));
-        SquareMatrix c21 = matrixMultiplyNaive(a21, b11).plus(matrixMultiplyNaive(a22, b21));
-        SquareMatrix c22 = matrixMultiplyNaive(a21, b12).plus(matrixMultiplyNaive(a22, b22));
-
-        return SquareMatrix.fromParts(c11, c12, c21, c22);
-    }
-
-    private static SquareMatrix matrixMultiplyStrassen(SquareMatrix matrix1, SquareMatrix matrix2) {
-        if (matrix1.getSize() == 1)
-            return SquareMatrix.fromElements(matrix1.getElement(1, 1) * matrix2.getElement(1, 1));
-
-        int halfSize = matrix1.getSize() / 2;
-        SquareMatrix a11 = matrix1.subMatrix(1, 1, halfSize);
-        SquareMatrix a12 = matrix1.subMatrix(1, halfSize + 1, halfSize);
-        SquareMatrix a21 = matrix1.subMatrix(halfSize + 1, 1, halfSize);
-        SquareMatrix a22 = matrix1.subMatrix(halfSize + 1, halfSize + 1, halfSize);
-
-        SquareMatrix b11 = matrix2.subMatrix(1, 1, halfSize);
-        SquareMatrix b12 = matrix2.subMatrix(1, halfSize + 1, halfSize);
-        SquareMatrix b21 = matrix2.subMatrix(halfSize + 1, 1, halfSize);
-        SquareMatrix b22 = matrix2.subMatrix(halfSize + 1, halfSize + 1, halfSize);
-
-        SquareMatrix s1 = b12.minus(b22);
-        SquareMatrix s2 = a11.plus(a12);
-        SquareMatrix s3 = a21.plus(a22);
-        SquareMatrix s4 = b21.minus(b11);
-        SquareMatrix s5 = a11.plus(a22);
-        SquareMatrix s6 = b11.plus(b22);
-        SquareMatrix s7 = a12.minus(a22);
-        SquareMatrix s8 = b21.plus(b22);
-        SquareMatrix s9 = a11.minus(a21);
-        SquareMatrix s10 = b11.plus(b12);
-
-        SquareMatrix p1 = matrixMultiplyStrassen(a11, s1);
-        SquareMatrix p2 = matrixMultiplyStrassen(s2, b22);
-        SquareMatrix p3 = matrixMultiplyStrassen(s3, b11);
-        SquareMatrix p4 = matrixMultiplyStrassen(a22, s4);
-        SquareMatrix p5 = matrixMultiplyStrassen(s5, s6);
-        SquareMatrix p6 = matrixMultiplyStrassen(s7, s8);
-        SquareMatrix p7 = matrixMultiplyStrassen(s9, s10);
-
-        SquareMatrix c11 = p5.plus(p4).minus(p2).plus(p6);
-        SquareMatrix c12 = p1.plus(p2);
-        SquareMatrix c21 = p3.plus(p4);
-        SquareMatrix c22 = p5.plus(p1).minus(p3).minus(p7);
-
-        return SquareMatrix.fromParts(c11, c12, c21, c22);
+        blackhole.consume(SquareMatrix.matrixMultiplyStrassen(matrix1, matrix2));
     }
 }

@@ -1,5 +1,7 @@
 package com.golfing8.struct;
 
+import com.golfing8.concurrent.ThreadPools;
+
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Random;
@@ -8,6 +10,9 @@ import java.util.Random;
  * Represents a size n square matrix.
  */
 public class SquareMatrix {
+    /** The matrix size to parallelize for in the strassen multiplication */
+    private static final int STRASSEN_PARALLELIZE_THRESHOLD = 999999999;
+
     /** Data stored in a flat format. Columns -> rows. */
     private final double[] data;
     /** The size of this matrix */
@@ -214,7 +219,14 @@ public class SquareMatrix {
     public boolean equals(Object object) {
         if (object == null || getClass() != object.getClass()) return false;
         SquareMatrix that = (SquareMatrix) object;
-        return size == that.size && Objects.deepEquals(data, that.data);
+        if (size != that.size)
+            return false;
+        for (int i = 0; i < elementCount; i++) {
+            double diff = this.data[i] - that.data[i];
+            if (Math.abs(diff) > 1e-6)
+                return false;
+        }
+        return true;
     }
 
     @Override
@@ -279,5 +291,103 @@ public class SquareMatrix {
             data[i] = elements[(i % size) * size + i / size];
         }
         return new SquareMatrix(size, data);
+    }
+
+    /**
+     * Performs a naive divide and conquer matrix multiplication
+     *
+     * @param matrix1 the first matrix
+     * @param matrix2 the second matrix
+     * @return the resulting matrix
+     */
+    public static SquareMatrix matrixMultiplyNaive(SquareMatrix matrix1, SquareMatrix matrix2) {
+        if (matrix1.getSize() == 1)
+            return SquareMatrix.fromElements(matrix1.getElement(1, 1) * matrix2.getElement(1, 1));
+
+        int halfSize = matrix1.getSize() / 2;
+        SquareMatrix a11 = matrix1.subMatrix(1, 1, halfSize);
+        SquareMatrix a12 = matrix1.subMatrix(1, halfSize + 1, halfSize);
+        SquareMatrix a21 = matrix1.subMatrix(halfSize + 1, 1, halfSize);
+        SquareMatrix a22 = matrix1.subMatrix(halfSize + 1, halfSize + 1, halfSize);
+
+        SquareMatrix b11 = matrix2.subMatrix(1, 1, halfSize);
+        SquareMatrix b12 = matrix2.subMatrix(1, halfSize + 1, halfSize);
+        SquareMatrix b21 = matrix2.subMatrix(halfSize + 1, 1, halfSize);
+        SquareMatrix b22 = matrix2.subMatrix(halfSize + 1, halfSize + 1, halfSize);
+
+        SquareMatrix c11 = matrixMultiplyNaive(a11, b11).plusIP(matrixMultiplyNaive(a12, b21));
+        SquareMatrix c12 = matrixMultiplyNaive(a11, b12).plusIP(matrixMultiplyNaive(a12, b22));
+        SquareMatrix c21 = matrixMultiplyNaive(a21, b11).plusIP(matrixMultiplyNaive(a22, b21));
+        SquareMatrix c22 = matrixMultiplyNaive(a21, b12).plusIP(matrixMultiplyNaive(a22, b22));
+
+        return SquareMatrix.fromParts(c11, c12, c21, c22);
+    }
+
+    /**
+     * Performs a strassen matrix multiplication
+     *
+     * @param matrix1 the first matrix
+     * @param matrix2 the second matrix
+     * @return the resulting matrix
+     */
+    public static SquareMatrix matrixMultiplyStrassen(SquareMatrix matrix1, SquareMatrix matrix2) {
+        if (matrix1.getSize() == 1)
+            return SquareMatrix.fromElements(matrix1.getElement(1, 1) * matrix2.getElement(1, 1));
+
+        int halfSize = matrix1.getSize() / 2;
+        SquareMatrix a11 = matrix1.subMatrix(1, 1, halfSize);
+        SquareMatrix a12 = matrix1.subMatrix(1, halfSize + 1, halfSize);
+        SquareMatrix a21 = matrix1.subMatrix(halfSize + 1, 1, halfSize);
+        SquareMatrix a22 = matrix1.subMatrix(halfSize + 1, halfSize + 1, halfSize);
+
+        SquareMatrix b11 = matrix2.subMatrix(1, 1, halfSize);
+        SquareMatrix b12 = matrix2.subMatrix(1, halfSize + 1, halfSize);
+        SquareMatrix b21 = matrix2.subMatrix(halfSize + 1, 1, halfSize);
+        SquareMatrix b22 = matrix2.subMatrix(halfSize + 1, halfSize + 1, halfSize);
+
+        SquareMatrix s1 = b12.minus(b22);
+        SquareMatrix s2 = a11.plus(a12);
+        SquareMatrix s3 = a21.plus(a22);
+        SquareMatrix s4 = b21.minus(b11);
+        SquareMatrix s5 = a11.plus(a22);
+        SquareMatrix s6 = b11.plus(b22);
+        SquareMatrix s7 = a12.minus(a22);
+        SquareMatrix s8 = b21.plus(b22);
+        SquareMatrix s9 = a11.minus(a21);
+        SquareMatrix s10 = b11.plus(b12);
+
+        SquareMatrix p1, p2, p3, p4, p5, p6, p7;
+        if (matrix1.getSize() >= STRASSEN_PARALLELIZE_THRESHOLD) {
+            var p1j = ThreadPools.MATRIX_EXECUTOR.submit(() -> matrixMultiplyStrassen(a11, s1));
+            var p2j = ThreadPools.MATRIX_EXECUTOR.submit(() -> matrixMultiplyStrassen(s2, b22));
+            var p3j = ThreadPools.MATRIX_EXECUTOR.submit(() -> matrixMultiplyStrassen(s3, b11));
+            var p4j = ThreadPools.MATRIX_EXECUTOR.submit(() -> matrixMultiplyStrassen(a22, s4));
+            var p5j = ThreadPools.MATRIX_EXECUTOR.submit(() -> matrixMultiplyStrassen(s5, s6));
+            var p6j = ThreadPools.MATRIX_EXECUTOR.submit(() -> matrixMultiplyStrassen(s7, s7));
+            var p7j = ThreadPools.MATRIX_EXECUTOR.submit(() -> matrixMultiplyStrassen(s9, s10));
+
+            p1 = p1j.join();
+            p2 = p2j.join();
+            p3 = p3j.join();
+            p4 = p4j.join();
+            p5 = p5j.join();
+            p6 = p6j.join();
+            p7 = p7j.join();
+        } else {
+            p1 = matrixMultiplyStrassen(a11, s1);
+            p2 = matrixMultiplyStrassen(s2, b22);
+            p3 = matrixMultiplyStrassen(s3, b11);
+            p4 = matrixMultiplyStrassen(a22, s4);
+            p5 = matrixMultiplyStrassen(s5, s6);
+            p6 = matrixMultiplyStrassen(s7, s8);
+            p7 = matrixMultiplyStrassen(s9, s10);
+        }
+
+        SquareMatrix c11 = p5.plus(p4).minusIP(p2).plusIP(p6);
+        SquareMatrix c12 = p1.plus(p2);
+        SquareMatrix c21 = p3.plus(p4);
+        SquareMatrix c22 = p5.plus(p1).minusIP(p3).minusIP(p7);
+
+        return SquareMatrix.fromParts(c11, c12, c21, c22);
     }
 }
