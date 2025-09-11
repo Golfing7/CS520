@@ -4,6 +4,7 @@ import com.google.common.graph.*;
 
 import java.util.*;
 
+@SuppressWarnings("UnstableApiUsage")
 public class GraphUtil {
     public record CostElement<T>(T element, double cost) implements Comparable<CostElement<T>> {
         @Override
@@ -19,7 +20,6 @@ public class GraphUtil {
         }
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     public static <T> Graph<CostElement<T>> shortestPath(T root, ValueGraph<T, Double> graph) {
         MutableValueGraph<T, Double> mutableOriginal = Graphs.copyOf(graph);
         MutableGraph<CostElement<T>> pathTree = GraphBuilder.directed().build();
@@ -50,5 +50,68 @@ public class GraphUtil {
             }
         }
         return pathTree;
+    }
+
+    public record WeightedEdge<T>(EndpointPair<T> pair, T parent, double weight) implements Comparable<WeightedEdge<T>> {
+        @Override
+        public int compareTo(WeightedEdge<T> o) {
+            return Double.compare(weight, o.weight);
+        }
+    }
+
+    /**
+     * Computes the MST of the given graph using Prim's algorithm.
+     *
+     * @param graph the graph
+     * @return the MST of the graph
+     * @param <T> the type
+     */
+    public static <T> Graph<T> computeMSTPrim(ValueGraph<T, Double> graph) {
+        if (graph.nodes().isEmpty())
+            return GraphBuilder.directed().build();
+
+        // Stores the parents of nodes
+        T source = graph.nodes().stream().findFirst().orElseThrow();
+        MutableValueGraph<T, Double> mst = ValueGraphBuilder.directed().build();
+        mst.addNode(source);
+
+        PriorityQueue<WeightedEdge<T>> edgeQueue = new PriorityQueue<>();
+
+        // Add initial edges to the graph.
+        for (var edge : graph.incidentEdges(source)) {
+            edgeQueue.add(new WeightedEdge<>(edge, source, graph.edgeValueOrDefault(edge, 0.0)));
+        }
+
+        // Handle edges in a priority fashion.
+        while (!edgeQueue.isEmpty()) {
+            var edge = edgeQueue.poll();
+
+            // If mst already contains the node, we may need to bump the old parent out to remove the cycle
+            T targetNode = edge.pair.adjacentNode(edge.parent);
+            if (mst.nodes().contains(targetNode)) {
+                // Kick out the old predecessor if necessary
+                var parentEdge = mst.incidentEdges(targetNode).stream().findFirst().orElseThrow();
+                if (mst.edgeValueOrDefault(parentEdge, 0.0) > edge.weight) {
+                    mst.removeEdge(parentEdge);
+                    mst.putEdgeValue(edge.pair.adjacentNode(targetNode), targetNode, edge.weight);
+                } else {
+                    // Otherwise, this node was already at a lower value. Skip to next iteration!
+                    continue;
+                }
+            } else {
+                // Simply insert the edge
+                mst.putEdgeValue(edge.pair.adjacentNode(targetNode), targetNode, edge.weight);
+            }
+
+            // Now, go through incident edges and insert them.
+            for (var adjacentEdge : graph.incidentEdges(targetNode)) {
+                // If the node is already in the tree, ignore it.
+                if (mst.nodes().contains(adjacentEdge.adjacentNode(targetNode)))
+                    continue;
+
+                edgeQueue.add(new WeightedEdge<>(adjacentEdge, targetNode, graph.edgeValueOrDefault(adjacentEdge, 0.0)));
+            }
+        }
+        return mst.asGraph();
     }
 }
