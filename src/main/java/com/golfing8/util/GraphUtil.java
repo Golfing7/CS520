@@ -11,6 +11,18 @@ public class GraphUtil {
         public int compareTo(CostElement<T> o) {
             return Double.compare(cost, o.cost);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            CostElement<?> that = (CostElement<?>) o;
+            return Objects.equals(element, that.element);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(element);
+        }
     }
 
     public record CostEdge<T>(CostElement<T> u, T v, double cost) implements Comparable<CostEdge<T>> {
@@ -46,6 +58,10 @@ public class GraphUtil {
 
             // Add new edges
             for (var edge : mutableOriginal.incidentEdges(currentEdge.v())) {
+                // Ignore ordered edges whose target points are v.
+                if (edge.isOrdered() && edge.target().equals(currentEdge.v()))
+                    continue;
+
                 edgeCosts.add(new CostEdge<>(newElement, edge.adjacentNode(currentEdge.v()), newElement.cost + mutableOriginal.edgeValue(edge).orElse(0.0)));
             }
         }
