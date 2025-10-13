@@ -6,6 +6,56 @@ import java.util.concurrent.ThreadLocalRandom;
  * Contains some divide and conquer algorithm implementations.
  */
 public class DivideAndConquer {
+    private static int[] maxSubArrayCrossing(int[] array, int low, int mid, int high) {
+        int maxLeft = 0;
+        int leftSum = Integer.MIN_VALUE;
+        int sum = 0;
+        for (int i = mid; i >= low; i--) {
+            sum = sum + array[i];
+            if (sum > leftSum) {
+                leftSum = sum;
+                maxLeft = i;
+            }
+        }
+
+        int maxRight = 0;
+        int rightSum = Integer.MIN_VALUE;
+        sum = 0;
+        for (int i = mid + 1; i < high; i++) {
+            sum = sum + array[i];
+            if (sum > rightSum) {
+                rightSum = sum;
+                maxRight = i;
+            }
+        }
+        return new int[] {maxLeft, maxRight, leftSum + rightSum};
+    }
+
+    /**
+     * Calculates the maximum sub array for the given array
+     *
+     * @param array the array
+     * @param low the low bounds
+     * @param high the high bounds, exclusive
+     * @return the maximum sub array
+     */
+    public static int[] maxSubArray(int[] array, int low, int high) {
+        if (low == high) {
+            return new int[] {low, high, array[low]};
+        }
+
+        int mid = (low + high) / 2;
+        int[] left = maxSubArray(array, low, mid);
+        int[] right = maxSubArray(array, mid + 1, high);
+        int[] cross = maxSubArrayCrossing(array, low, mid, high);
+        if (left[2] > right[2] && left[2] > cross[2])
+            return left;
+        else if (right[2] > left[2] && right[2] > cross[2])
+            return right;
+
+        return cross;
+    }
+
     /**
      * Performs a partition on the given array
      *

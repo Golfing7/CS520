@@ -1,6 +1,7 @@
 package com.golfing8.array;
 
 import com.golfing8.util.ArrayUtil;
+import com.golfing8.util.DivideAndConquer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +30,7 @@ public class ArrayTest {
         };
 
         Assertions.assertArrayEquals(new int[] {7, 10}, ArrayUtil.maxSubArray(a));
+        Assertions.assertArrayEquals(new int[] {7, 10, 43}, DivideAndConquer.maxSubArray(a, 0, a.length));
     }
 
     @Test
