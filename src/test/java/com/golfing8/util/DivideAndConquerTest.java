@@ -1,5 +1,6 @@
 package com.golfing8.util;
 
+import com.golfing8.struct.Point2D;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 
@@ -57,5 +59,37 @@ public class DivideAndConquerTest {
                     assertEquals(-1, DivideAndConquer.binarySearch(array, key));
                 })
         );
+    }
+
+    @Test
+    public void closestPair() {
+        List<Point2D> points = List.of(
+                new Point2D(2, 3),
+                new Point2D(12, 30),
+                new Point2D(40, 50),
+                new Point2D(5, 1),
+                new Point2D(12, 10),
+                new Point2D(3, 4)
+        );
+
+        var closestPair = DivideAndConquer.closestPair(points);
+        System.out.println(closestPair);
+        System.out.println(closestPair.left().distance(closestPair.right()));
+    }
+
+    @Test
+    public void closestPairMerging() {
+        List<Point2D> points = List.of(
+                new Point2D(2, 3),
+                new Point2D(3, 4),
+                new Point2D(5, 1),
+                new Point2D(5.5, 1),
+                new Point2D(12, 30),
+                new Point2D(40, 50)
+        );
+
+        var closestPair = DivideAndConquer.closestPair(points);
+        System.out.println(closestPair);
+        System.out.println(closestPair.left().distance(closestPair.right()));
     }
 }

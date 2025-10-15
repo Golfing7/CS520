@@ -1,5 +1,11 @@
 package com.golfing8.util;
 
+import com.golfing8.struct.Pair;
+import com.golfing8.struct.Point2D;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -165,5 +171,68 @@ public class DivideAndConquer {
      */
     public static int binarySearch(double[] array, double key) {
         return binarySearch(array, 0, array.length, key);
+    }
+
+    private static Pair<Point2D, Point2D> closestOfThree(Point2D p1, Point2D p2, Point2D p3) {
+        double d1 = p1.distance(p2);
+        double d2 = p1.distance(p3);
+        double d3 = p2.distance(p3);
+        if (d1 <= d2 && d1 <= d3)
+            return new Pair<>(p1, p2);
+        else if (d2 <= d1 && d2 <= d3)
+            return new Pair<>(p1, p3);
+        else
+            return new Pair<>(p2, p3);
+    }
+
+    private static Pair<Point2D, Point2D> closestPair(List<Point2D> x, List<Point2D> y) {
+        int n = x.size();
+        if (n == 2)
+            return new Pair<>(x.getFirst(), x.getLast());
+        if (n == 3) {
+            // Find the closest distance among the three.
+            return closestOfThree(x.get(0), x.get(1), x.get(2));
+        }
+
+        int mid = n / 2;
+        var midPoint = x.get(mid);
+        var left = closestPair(x.subList(0, mid), y);
+        var right = closestPair(x.subList(mid, x.size()), y);
+        var closest = left.left().distance(left.right()) < right.left().distance(right.right()) ? left : right;
+
+        double distance = closest.left().distance(closest.right());
+        for (int i = 0; i < y.size(); i++) {
+            var point = y.get(i);
+            if (Math.abs(point.x() - midPoint.x()) > distance)
+                continue;
+
+            for (int j = i + 1; j < y.size() && y.get(j).y() - point.y() < distance; j++) {
+                var other = y.get(i + j);
+                double dist = point.distance(other);
+                if (dist < distance) {
+                    distance = dist;
+                    closest = new Pair<>(point, other);
+                }
+            }
+        }
+        return closest;
+    }
+
+    /**
+     * Finds the closest pair of points in the given collection of points
+     *
+     * @param points the points
+     * @return the closest pair of points
+     */
+    public static Pair<Point2D, Point2D> closestPair(Collection<Point2D> points) {
+        if (points.size() <= 1)
+            throw new IllegalArgumentException("Cannot get closest pair among a single point");
+
+        List<Point2D> xSorted = new ArrayList<>(points);
+        xSorted.sort(Point2D.X);
+        List<Point2D> ySorted = new ArrayList<>(points);
+        ySorted.sort(Point2D.Y);
+
+        return closestPair(xSorted, ySorted);
     }
 }
