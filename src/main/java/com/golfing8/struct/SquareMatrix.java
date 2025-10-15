@@ -1,6 +1,7 @@
 package com.golfing8.struct;
 
 import com.golfing8.concurrent.ThreadPools;
+import lombok.Getter;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -16,6 +17,7 @@ public class SquareMatrix {
     /** Data stored in a flat format. Columns -> rows. */
     private final double[] data;
     /** The size of this matrix */
+    @Getter
     private final int size;
     /** The amount of elements in this matrix. Equal to {@code size * size} */
     private final int elementCount;
@@ -24,10 +26,6 @@ public class SquareMatrix {
         this.data = data;
         this.size = size;
         this.elementCount = size * size;
-    }
-
-    public int getSize() {
-        return size;
     }
 
     /**
@@ -264,7 +262,6 @@ public class SquareMatrix {
      */
     public static SquareMatrix fromParts(SquareMatrix c11, SquareMatrix c12, SquareMatrix c21, SquareMatrix c22) {
         int newSize = c11.getSize() * 2;
-        double[] newData = new double[newSize * newSize];
 
         SquareMatrix result = new SquareMatrix(newSize);
         result.setSubMatrix(1, 1, c11);
@@ -386,8 +383,11 @@ public class SquareMatrix {
         SquareMatrix c11 = p5.plus(p4).minusIP(p2).plusIP(p6);
         SquareMatrix c12 = p1.plus(p2);
         SquareMatrix c21 = p3.plus(p4);
-        SquareMatrix c22 = p5.plus(p1).minusIP(p3).minusIP(p7);
+        SquareMatrix c22 = p5.plusIP(p1).minusIP(p3).minusIP(p7);
 
+        if (c11.getSize() >= 256) {
+            System.out.println("Completed multiplication of " + c11.getSize() * 2 + " matrix");
+        }
         return SquareMatrix.fromParts(c11, c12, c21, c22);
     }
 }

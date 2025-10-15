@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
+import java.util.Objects;
+
 public class SquareMatrixTest {
     @Test
     public void testRegularMultiplication() {
@@ -36,5 +38,15 @@ public class SquareMatrixTest {
 
         Assertions.assertEquals(p1, p2);
         Assertions.assertEquals(p1, p3);
+    }
+
+    @Test
+    public void testLargeMatrixMultiply() {
+        SquareMatrix a = SquareMatrix.random(2048);
+        SquareMatrix b = SquareMatrix.random(2048);
+
+        SquareMatrix p1 = SquareMatrix.matrixMultiplyStrassen(a, b);
+
+        System.out.println(Objects.toIdentityString(p1));
     }
 }
